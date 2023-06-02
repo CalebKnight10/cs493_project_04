@@ -3,6 +3,8 @@ const morgan = require('morgan')
 
 const api = require('./api')
 const { connectToDb } = require('./lib/mongo')
+const multer = require('multer');
+const upload = multer({ dest: `${__dirname}/uploads` });
 
 const app = express()
 const port = process.env.PORT || 8000
