@@ -41,6 +41,48 @@ router.post('/', async (req, res) => {
 })
 
 /*
+* Post /photos using upload function
+*/
+router.post('/', upload.single('file'), async (req, res) => {
+  req.body = { ...req.body, file: req.file }
+  if (validateAgainstSchema(req.body, PhotoSchema)) {
+    try {
+      req.body.businessId = Number(req.body.businessId)
+      await insertNewPhoto(req.body).then( id => {
+        // get path for photo
+        const extension = mime.extension(req.file.mimetype)
+        const photoUrl = `/media/photos/${id}.${extension}`
+
+        // get path for thumbnail
+        const thumbUrl = `/media/thumbs/${id}.jpg`
+
+        const businessId = req.body.businessId
+        const businessUrl = `/businesses/${businessId}`
+
+        res.status(201).send({
+          id: id,
+          links: {
+            photo: photoUrl,
+            business: businessUrl,
+            thumbnail: thumbUrl
+          }
+        })
+      })
+    } catch (err) {
+      console.error(err)
+      res.status(500).send({
+        error: "Error inserting photo into database.  Try again."
+      })
+    }
+  } else {
+    res.status(400).send({
+      error: "Request body isn't a valid photo object"
+    })
+  }
+})
+
+
+/*
  * GET /photos/{id} - Route to fetch info about a specific photo.
  */
 router.get('/:id', async (req, res, next) => {
