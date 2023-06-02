@@ -6,6 +6,7 @@ const { ObjectId } = require('mongodb')
 
 const { getDbReference } = require('../lib/mongo')
 const { extractValidFields } = require('../lib/validation')
+const fs = require("fs");
 
 /*
  * Schema describing required/optional fields of a photo object.
@@ -20,13 +21,41 @@ exports.PhotoSchema = PhotoSchema
  * Executes a DB query to insert a new photo into the database.  Returns
  * a Promise that resolves to the ID of the newly-created photo entry.
  */
+// async function insertNewPhoto(photo) {
+//   photo = extractValidFields(photo, PhotoSchema)
+//   photo.businessId = ObjectId(photo.businessId)
+//   const db = getDbReference()
+//   const collection = db.collection('photos')
+//   const result = await collection.insertOne(photo)
+//   return result.insertedId
+// }
+// exports.insertNewPhoto = insertNewPhoto
+
+
+/*
+* New insertPhoto function using example from exploration
+*/
+
 async function insertNewPhoto(photo) {
   photo = extractValidFields(photo, PhotoSchema)
-  photo.businessId = ObjectId(photo.businessId)
   const db = getDbReference()
-  const collection = db.collection('photos')
-  const result = await collection.insertOne(photo)
-  return result.insertedId
+  const bucket = new GridFSBucket(db, { bucketName: 'photos' })
+  const metadata = {
+    contentType: photo.file.mimetype,
+    businessId: photo.businessId,
+    caption: photo.caption
+  }
+  return new Promise(resolve => {
+    fs.createReadStream(photo.file.path).pipe(bucket.openUploadStream(photo.file.originalname, {
+          chunkSizeBytes: 512,
+          metadata: metadata
+        })
+    ).on('finish', async function (result) {
+      console.log(result)
+      await sendToQueue(QueueName.PHOTOS, result._id.toString())
+      resolve(result._id)
+    })
+  })
 }
 exports.insertNewPhoto = insertNewPhoto
 

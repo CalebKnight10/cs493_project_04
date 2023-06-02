@@ -16,29 +16,29 @@ const router = Router()
 /*
  * POST /photos - Route to create a new photo.
  */
-router.post('/', async (req, res) => {
-  if (validateAgainstSchema(req.body, PhotoSchema)) {
-    try {
-      const id = await insertNewPhoto(req.body)
-      res.status(201).send({
-        id: id,
-        links: {
-          photo: `/photos/${id}`,
-          business: `/businesses/${req.body.businessId}`
-        }
-      })
-    } catch (err) {
-      console.error(err)
-      res.status(500).send({
-        error: "Error inserting photo into DB.  Please try again later."
-      })
-    }
-  } else {
-    res.status(400).send({
-      error: "Request body is not a valid photo object"
-    })
-  }
-})
+// router.post('/', async (req, res) => {
+//   if (validateAgainstSchema(req.body, PhotoSchema)) {
+//     try {
+//       const id = await insertNewPhoto(req.body)
+//       res.status(201).send({
+//         id: id,
+//         links: {
+//           photo: `/photos/${id}`,
+//           business: `/businesses/${req.body.businessId}`
+//         }
+//       })
+//     } catch (err) {
+//       console.error(err)
+//       res.status(500).send({
+//         error: "Error inserting photo into DB.  Please try again later."
+//       })
+//     }
+//   } else {
+//     res.status(400).send({
+//       error: "Request body is not a valid photo object"
+//     })
+//   }
+// })
 
 /*
 * Post /photos using upload function
