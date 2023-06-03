@@ -78,3 +78,22 @@ async function getPhotoById(id) {
   }
 }
 exports.getPhotoById = getPhotoById
+
+
+/*
+* Download photo by id
+*/
+async function getDownloadedPhotoFileById(id, fileLocation) {
+  const db = getDbReference()
+  const bucket = new GridFSBucket(db, { bucketName: 'photos' })
+  const downloadStream = bucket.openDownloadStream(new ObjectId(id))
+
+  return new Promise(resolve => {
+    downloadStream.on('data', (chunk) => {
+      fs.appendFileSync(fileLocation, chunk);
+    })
+    downloadStream.on('end', () => {
+      resolve(fileLocation)
+    })
+  })
+}
