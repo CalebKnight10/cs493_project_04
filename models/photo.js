@@ -97,3 +97,53 @@ async function getDownloadedPhotoFileById(id, fileLocation) {
     })
   })
 }
+
+exports.getDownloadedPhotoFileById = getDownloadedPhotoFileById
+
+/*
+* Transform a photo to pixels to use as thumbnail
+*/
+async function transformPhotoToPixels(photoFilePath, width, height) {
+  const image = await Jimp.read(photoFilePath)
+  const newPhotoFilePath = `/tmp/${photoFilePath}`
+  return new Promise(resolve => {
+    image.resize(width, height).write(newPhotoFilePath, () => {
+      resolve(newPhotoFilePath)
+    })
+  })
+}
+
+exports.transformPhotoToPixels = transformPhotoToPixels
+
+
+/*
+* Upload thumbnail
+*/
+async function uploadNewThumbnailFromPhoto(photoId) {
+  // Retrieve photo and scale it down to 100x100px
+  const photo = await getDownloadedPhotoFileById(photoId, `/tmp/${photoId}.jpg`)
+  const transformedFilePath = await transformPhotoToPixels(photo, 100, 100)
+  const photoMetadata = await getPhotoById(photoId)
+
+  // Get a reference to the database and to the bucket
+  const db = getDbReference()
+  const bucket = new GridFSBucket(db, { bucketName: 'thumbs' })
+  const metadata = {
+    contentType: 'image/jpeg',
+  }
+
+  // Upload the scaled thumbnail to the database
+  return new Promise(resolve => {
+    // openUploadStream parameter filename might be better not to be a photoId
+    fs.createReadStream(transformedFilePath).pipe(bucket.openUploadStreamWithId(new ObjectId(photoId), photoMetadata.filename, {
+          chunkSizeBytes: 512,
+          metadata: metadata
+        })
+    ).on('finish', function (result) {
+      console.log(result)
+      resolve(result._id)
+    })
+  })
+}
+
+exports.uploadNewThumbnailFromPhoto = uploadNewThumbnailFromPhoto
