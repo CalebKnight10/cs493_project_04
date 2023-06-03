@@ -4,9 +4,12 @@ const morgan = require('morgan')
 const api = require('./api')
 const { connectToDb } = require('./lib/mongo')
 const multer = require('multer');
-const upload = multer({ dest: `${__dirname}/uploads` });
+const bodyParser = require("body-parser");
+const upload = multer();
 
 const app = express()
+app.use(bodyParser.json())
+
 const port = process.env.PORT || 8000
 
 /*
