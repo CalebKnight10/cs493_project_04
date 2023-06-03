@@ -85,18 +85,49 @@ router.post('/', upload.single('file'), async (req, res) => {
 /*
  * GET /photos/{id} - Route to fetch info about a specific photo.
  */
+// router.get('/:id', async (req, res, next) => {
+//   try {
+//     const photo = await getPhotoById(req.params.id)
+//     if (photo) {
+//       res.status(200).send(photo)
+//     } else {
+//       next()
+//     }
+//   } catch (err) {
+//     console.error(err)
+//     res.status(500).send({
+//       error: "Unable to fetch photo.  Please try again later."
+//     })
+//   }
+// })
+
+/*
+* New route to fetch info on specific photo
+*/
+
 router.get('/:id', async (req, res, next) => {
   try {
     const photo = await getPhotoById(req.params.id)
-    if (photo) {
-      res.status(200).send(photo)
-    } else {
-      next()
+    if (!photo) {
+      return next()
     }
+    const metadata = photo.metadata
+    // Generate URLs for photo
+    const extension = metadata.contentType.split('/').pop()
+    const photoUrl = `/media/photos/${req.params.id}.${extension}`
+    const thumbUrl = `/media/thumbs/${req.params.id}.jpg`
+    console.log(photo)
+    res.status(200).send({
+      ...photo,
+      links: {
+        photo: photoUrl,
+        thumbnail: thumbUrl
+      }
+    })
   } catch (err) {
     console.error(err)
     res.status(500).send({
-      error: "Unable to fetch photo.  Please try again later."
+      error: "Unable to fetch photo.  Please try again."
     })
   }
 })
