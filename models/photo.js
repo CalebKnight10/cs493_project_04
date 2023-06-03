@@ -3,10 +3,15 @@
  */
 
 const { ObjectId } = require('mongodb')
+const { GridFSBucket } = require('mongodb')
 
 const { getDbReference } = require('../lib/mongo')
 const { extractValidFields } = require('../lib/validation')
+const { sendToQueue } = require('../lib/rabbitmq')
+const { QueueName } = require('../lib/rabbitmq')
 const fs = require("fs");
+const Jimp = require('jimp');
+
 
 /*
  * Schema describing required/optional fields of a photo object.
@@ -65,19 +70,75 @@ exports.insertNewPhoto = insertNewPhoto
  * photo.  If no photo with the specified ID exists, the returned Promise
  * will resolve to null.
  */
+
 async function getPhotoById(id) {
   const db = getDbReference()
-  const collection = db.collection('photos')
-  if (!ObjectId.isValid(id)) {
-    return null
-  } else {
-    const results = await collection
-      .find({ _id: new ObjectId(id) })
-      .toArray()
-    return results[0]
-  }
+  const bucket = new GridFSBucket(db, { bucketName: 'photos' })
+  const cursor = bucket.find({ _id: new ObjectId(id) })
+  const results = await cursor.toArray()
+  return results[0]
 }
+
 exports.getPhotoById = getPhotoById
+
+
+async function containsPhoto(id) {
+  if (!ObjectId.isValid(id)) {
+    return false
+  }
+  const db = getDbReference()
+  const bucket = new GridFSBucket(db, { bucketName: 'photos' })
+  const cursor = bucket.find({ _id: new ObjectId(id) })
+  const results = await cursor.toArray()
+  return results.length > 0
+}
+
+exports.containsPhoto = containsPhoto
+
+
+async function containsThumbnail(id) {
+  if (!ObjectId.isValid(id)) {
+    return false
+  }
+  const db = getDbReference()
+  const bucket = new GridFSBucket(db, { bucketName: 'thumbs' })
+  const cursor = bucket.find({ _id: new ObjectId(id) })
+  const results = await cursor.toArray()
+  return results.length > 0
+}
+
+exports.containsThumbnail = containsThumbnail
+
+
+async function downloadPhotoById(id, outputFile) {
+  const db = getDbReference()
+  const bucket = new GridFSBucket(db, { bucketName: 'photos' })
+  const downStream = bucket.openDownloadStream(new ObjectId(id))
+  downStream.pipe(outputFile)
+}
+
+exports.downloadPhotoById = downloadPhotoById
+
+
+async function getThumbnailById(id) {
+  const db = getDbReference()
+  const bucket = new GridFSBucket(db, { bucketName: 'thumbs' })
+  const cursor = bucket.find({ _id: new ObjectId(id) })
+  const results = await cursor.toArray()
+  return results[0]
+}
+
+exports.getThumbnailById = getThumbnailById
+
+
+async function downloadThumbnailById(id, outputFile) {
+  const db = getDbReference()
+  const bucket = new GridFSBucket(db, { bucketName: 'thumbs' })
+  const downStream = bucket.openDownloadStream(new ObjectId(id))
+  downStream.pipe(outputFile)
+}
+
+exports.downloadThumbnailById = downloadThumbnailById
 
 
 /*
