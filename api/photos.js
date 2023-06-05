@@ -13,6 +13,16 @@ const {
 
 const router = Router()
 
+const mime = require('mime-types')
+const multer = require('multer')
+const upload = multer({ dest: `${__dirname}/uploads/images`, fileFilter: (req, file, callback) => {
+  if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
+    callback(null, true)
+  }
+  else {
+    callback(new Error('Invalid file type. Only jpeg or png files are allowed.'), false)
+  }
+}})
 /*
  * POST /photos - Route to create a new photo.
  */
